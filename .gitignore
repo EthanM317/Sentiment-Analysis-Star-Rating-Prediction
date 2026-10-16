@@ -221,3 +221,7 @@ __marimo__/
 
 # Dataset
 aclImdb
+
+# Datasets
+data/sentiment/*.csv
+data/star-rating/*.csv
