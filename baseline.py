@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 print("Step 1/5: Loading dataset...", flush=True)
-df = pd.read_csv("data/star-rating/imdb_ratings.csv")
+df = pd.read_csv("imdb_ratings.csv")
 #reducing to random sample of 10,000 instead of 137,000 due to long train times & match research paper
 df = df.sample(n=10000, random_state=12)
 X = df["review"]
