@@ -10,6 +10,8 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 print("Step 1/5: Loading dataset...", flush=True)
 df = pd.read_csv("data/star-rating/imdb_ratings.csv")
+#reducing to random sample of 10,000 instead of 137,000 due to long train times & match research paper
+df = df.sample(n=10000, random_state=12)
 X = df["review"]
 y = df["rating"]
 print(f"Loaded {len(df):,} reviews.", flush=True)
@@ -24,7 +26,7 @@ print(f"Testing reviews: {len(X_test):,}", flush=True)
 print("Step 3/5: Creating baseline model...", flush=True)
 baseline = Pipeline([
     ("tfidf", TfidfVectorizer(max_features=2000)),
-    ("svr", SVR(C=2, epsilon=0.5))
+    ("svr", SVR(C=4, epsilon=0.01))
 ])
 
 print("Step 4/5: Training model (this may take a while)...", flush=True)
