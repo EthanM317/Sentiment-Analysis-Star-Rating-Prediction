@@ -36,6 +36,10 @@ def cache_model(path, builder):
             
 
 if __name__ == "__main__":
+    if not os.path.exists("IMDB-Dataset.csv"):
+        print("IMDB-Dataset.csv does not exist. Did you forget to run \"initial-eda.py\" first?")
+        exit(0)
+            
     if not os.path.exists("imdb_ratings.csv"):
         print("imdb_ratings.csv does not exist. Did you forget to run \"initial-eda.py\" first?")
         exit(0)
