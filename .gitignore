@@ -225,3 +225,4 @@ aclImdb
 # Datasets
 imdb_ratings.csv
 reviews_rating_*.csv
+*.cache

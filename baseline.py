@@ -15,7 +15,7 @@ import pickle
 
 if __name__ == "__main__":
     if not os.path.exists("imdb_ratings.csv"):
-        print("imdb_ratings.csv does not exist. Did you forget to run \"baseline-processing.py\" first?")
+        print("imdb_ratings.csv does not exist. Did you forget to run \"initial-eda.py\" first?")
         exit(0)
 
     baseline = None
@@ -35,9 +35,9 @@ if __name__ == "__main__":
         X, y, test_size=0.10, random_state=12
     )
 
-    if os.path.exists("model.cache"):
-        print("Step 3/4: Creating baseline model using model.cache", flush=True)
-        with open("model.cache", "rb") as file:
+    if os.path.exists("baseline-model.cache"):
+        print("Step 3/4: Creating baseline model using baseline-model.cache", flush=True)
+        with open("baseline-model.cache", "rb") as file:
             baseline = pickle.load(file)
     else:
         print(f"Training reviews: {len(X_train):,}", flush=True)
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         baseline.fit(X_train, y_train)
 
         print("Training complete! Cacheing model", flush=True)
-        with open("model.cache", "wb") as file:
+        with open("baseline-model.cache", "wb") as file:
             pickle.dump(baseline, file=file)
 
         
