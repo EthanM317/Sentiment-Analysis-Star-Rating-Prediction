@@ -223,5 +223,5 @@ __marimo__/
 aclImdb
 
 # Datasets
-data/sentiment/*.csv
-data/star-rating/*.csv
+imdb_ratings.csv
+reviews_rating_*.csv

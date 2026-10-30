@@ -2,40 +2,42 @@
 import pandas as pd
 from pathlib import Path
 
-# Root directory
-ROOT_DIR = Path(".")
 
-# Output file
-OUTPUT_FILE = ROOT_DIR / "imdb_ratings.csv"
+if __name__ == "__main__":
+    # Root directory
+    ROOT_DIR = Path(".")
 
-# Store all dataframes
-dataframes = []
+    # Output file
+    OUTPUT_FILE = ROOT_DIR / "imdb_ratings.csv"
 
-# Read all CSV files in the root directory, excluding the output file
-for file_path in ROOT_DIR.glob("*.csv"):
-    if file_path.name == OUTPUT_FILE.name:
-        continue
+    # Store all dataframes
+    dataframes = []
 
-    print(f"Processing {file_path}...")
+    # Read all CSV files in the root directory, excluding the output file
+    for file_path in ROOT_DIR.glob("*.csv"):
+        if file_path.name == OUTPUT_FILE.name:
+            continue
 
-    df = pd.read_csv(file_path)
+        print(f"Processing {file_path}...")
 
-    # Keep only the rating and review columns, dropping MovieID
-    df = df[["Rating", "Review"]].copy()
+        df = pd.read_csv(file_path)
 
-    # Rename columns to lowercase
-    df.columns = ["rating", "review"]
+        # Keep only the rating and review columns, dropping MovieID
+        df = df[["Rating", "Review"]].copy()
 
-    dataframes.append(df)
+        # Rename columns to lowercase
+        df.columns = ["rating", "review"]
 
-# Combine all dataframes into one
-combined_df = pd.concat(dataframes, ignore_index=True)
+        dataframes.append(df)
 
-# Shuffle the rows reproducibly
-combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)
+    # Combine all dataframes into one
+    combined_df = pd.concat(dataframes, ignore_index=True)
 
-# Save the combined dataset in the root directory
-combined_df.to_csv(OUTPUT_FILE, index=False)
+    # Shuffle the rows reproducibly
+    combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-print(f"\nCombined {len(combined_df):,} reviews.")
-print(f"Saved to {OUTPUT_FILE.resolve()}")
+    # Save the combined dataset in the root directory
+    combined_df.to_csv(OUTPUT_FILE, index=False)
+
+    print(f"\nCombined {len(combined_df):,} reviews.")
+    print(f"Saved to {OUTPUT_FILE.resolve()}")
