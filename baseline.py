@@ -36,10 +36,9 @@ if __name__ == "__main__":
     )
 
     if os.path.exists("model.cache"):
-        print("Step 3/4: Creating baseline model...", flush=True)
+        print("Step 3/4: Creating baseline model using model.cache", flush=True)
         with open("model.cache", "rb") as file:
             baseline = pickle.load(file)
-        print("Step Using model.cache")
     else:
         print(f"Training reviews: {len(X_train):,}", flush=True)
         print(f"Testing reviews: {len(X_test):,}", flush=True)
