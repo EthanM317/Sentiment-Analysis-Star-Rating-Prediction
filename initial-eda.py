@@ -1,43 +1,43 @@
-import os
+
 import pandas as pd
-import numpy as np
 from pathlib import Path
-# import matplotlib.pyplot as plt
-# import seaborn as sns
-
-cwd = os.getcwd()
 
 
-def load_positive_and_negative_data(path:Path):
-    def get_id_and_rating(text_file:Path):
-        id, rating = map(int, text_file.stem.split("_"))
-        content = ""
-        with open(text_file, "r", encoding="utf-8") as file:
-            content = file.read()
-        return (str(cwd), content, rating)
+if __name__ == "__main__":
+    # Root directory
+    ROOT_DIR = Path(".")
 
+    # Output file
+    OUTPUT_FILE = ROOT_DIR / "imdb_ratings.csv"
 
-    def load_reviews_from_dir(dir:Path):
-        return pd.DataFrame([get_id_and_rating(x) for x in dir.rglob(f"*.*")], columns=['file', 'content', 'rating'])
+    # Store all dataframes
+    dataframes = []
 
+    # Read all CSV files in the root directory, excluding the output file
+    for file_path in ROOT_DIR.glob("*.csv"):
+        if file_path.name == OUTPUT_FILE.name:
+            continue
 
-    df_pos = load_reviews_from_dir(path / Path("pos"))
-    df_pos['sentiment'] = 1
+        print(f"Processing {file_path}...")
 
+        df = pd.read_csv(file_path)
 
-    df_neg = load_reviews_from_dir(path / Path(".neg"))
-    df_neg['sentiment'] = 0
+        # Keep only the rating and review columns, dropping MovieID
+        df = df[["Rating", "Review"]].copy()
 
-    return pd.merge(df_pos, df_neg, how='outer').sample(frac=1).reset_index(drop=True)
+        # Rename columns to lowercase
+        df.columns = ["rating", "review"]
 
+        dataframes.append(df)
 
-df_train = load_positive_and_negative_data("./aclImdb/train")
+    # Combine all dataframes into one
+    combined_df = pd.concat(dataframes, ignore_index=True)
 
-print(df_train)
+    # Shuffle the rows reproducibly
+    combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)
 
-# sum and show all nan values
-print (df_train.isna().sum().tolist())
-print(f"{df_train.columns[df_train.isna().any()].tolist()}")
+    # Save the combined dataset in the root directory
+    combined_df.to_csv(OUTPUT_FILE, index=False)
 
-# # show duplicated valuess
-print (df_train.duplicated().tolist())
+    print(f"\nCombined {len(combined_df):,} reviews.")
+    print(f"Saved to {OUTPUT_FILE.resolve()}")
