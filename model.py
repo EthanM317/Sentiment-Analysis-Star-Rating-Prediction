@@ -4,35 +4,51 @@
 import pandas as pd
 import os
 import pickle
+from pathlib import Path
+
+import matplotlib.pyplot as plt
 
 from scipy.stats import pearsonr, loguniform, randint
 
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import (
+    train_test_split,
+    RandomizedSearchCV,
+    GridSearchCV
+)
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
     mean_absolute_error,
     mean_squared_error
 )
 from sklearn.linear_model import LinearRegression
 
 
+# Root directory
+ROOT_DIR = Path(__file__).resolve().parent
+
 # Cache file
-FULL_MODEL_FILE = "model-NaiveBayes.cache"
+FULL_MODEL_FILE = ROOT_DIR / "model-NaiveBayes.cache"
 
 
 # Cache both models together
 def cache_model(path, builder):
+
     if os.path.exists(path):
+
         print("Loading complete model from cache...", flush=True)
 
         with open(path, "rb") as file:
             models = pickle.load(file)
 
     else:
+
         print("Training complete model (this might take a while)...", flush=True)
 
         models = builder()
@@ -49,11 +65,19 @@ def cache_model(path, builder):
 def build_full_model(
     X_train_sentiment,
     y_train_sentiment,
-    X_tune,
-    y_tune,
+    X_tune_sentiment,
+    y_tune_sentiment,
     X_train_rating,
-    y_train_rating
+    y_train_rating,
+    X_tune_rating,
+    y_tune_rating
 ):
+
+    # --------------------------------------------------
+    # Tune Naive Bayes sentiment classifier
+    # --------------------------------------------------
+
+    print("\nTuning sentiment classifier...", flush=True)
 
     # Initial sentiment classification pipeline
     sentiment_pipeline = Pipeline([
@@ -61,17 +85,28 @@ def build_full_model(
         ("classifier", MultinomialNB())
     ])
 
-    # Hyperparameter search space
-    param_distributions = {
+    # Sentiment hyperparameter search space
+    sentiment_param_distributions = {
+
         "classifier__alpha": loguniform(0.001, 10),
+
         "vectorizer__max_features": randint(1000, 20001),
-        "vectorizer__ngram_range": [(1, 1), (1, 2), (1, 3)]
+
+        "vectorizer__ngram_range": [
+            (1, 1),
+            (1, 2),
+            (1, 3)
+        ],
+
+        "vectorizer__min_df": randint(1, 11),
+
+        "classifier__fit_prior": [True, False]
     }
 
-    # Tune hyperparameters using the separate tuning dataset
-    random_search = RandomizedSearchCV(
+    # Randomized hyperparameter search
+    sentiment_search = RandomizedSearchCV(
         estimator=sentiment_pipeline,
-        param_distributions=param_distributions,
+        param_distributions=sentiment_param_distributions,
         n_iter=20,
         cv=3,
         scoring="f1_macro",
@@ -81,58 +116,153 @@ def build_full_model(
         refit=False
     )
 
-    print("\nTuning sentiment classifier...", flush=True)
+    # Tune using ONLY the sentiment tuning dataset
+    sentiment_search.fit(
+        X_tune_sentiment,
+        y_tune_sentiment
+    )
 
-    random_search.fit(X_tune, y_tune)
+    best_sentiment_params = sentiment_search.best_params_
 
-    best_params = random_search.best_params_
+    print("\nBest sentiment hyperparameters:", flush=True)
 
-    print("\nBest sentiment parameters:", best_params, flush=True)
+    for parameter, value in best_sentiment_params.items():
+        print(f"{parameter}: {value}", flush=True)
 
-    # Build the final sentiment classifier using the best parameters
+    print(
+        f"\nBest sentiment cross-validation F1: "
+        f"{sentiment_search.best_score_:.4f}",
+        flush=True
+    )
+
+    # Build final sentiment classifier using selected parameters
     sentiment_model = Pipeline([
         ("vectorizer", CountVectorizer(
-            max_features=best_params["vectorizer__max_features"],
-            ngram_range=best_params["vectorizer__ngram_range"]
+            max_features=best_sentiment_params["vectorizer__max_features"],
+            ngram_range=best_sentiment_params["vectorizer__ngram_range"],
+            min_df=best_sentiment_params["vectorizer__min_df"]
         )),
+
         ("classifier", MultinomialNB(
-            alpha=best_params["classifier__alpha"]
+            alpha=best_sentiment_params["classifier__alpha"],
+            fit_prior=best_sentiment_params["classifier__fit_prior"]
         ))
     ])
 
-    # Train the final sentiment classifier using ONLY the training dataset
+    # Train final sentiment classifier using ONLY training data
     print("\nTraining final sentiment classifier...", flush=True)
 
-    sentiment_model.fit(X_train_sentiment, y_train_sentiment)
+    sentiment_model.fit(
+        X_train_sentiment,
+        y_train_sentiment
+    )
 
-    # Extract positive sentiment probabilities from the rating training reviews
-    print("\nGenerating sentiment probabilities for rating training data...", flush=True)
 
-    probabilities = sentiment_model.predict_proba(
+    # --------------------------------------------------
+    # Generate sentiment features for rating datasets
+    # --------------------------------------------------
+
+    print(
+        "\nGenerating sentiment probabilities for rating datasets...",
+        flush=True
+    )
+
+    # Generate features for rating training reviews
+    train_probabilities = sentiment_model.predict_proba(
         X_train_rating.fillna("")
+    )
+
+    # Generate features for rating tuning reviews
+    tune_probabilities = sentiment_model.predict_proba(
+        X_tune_rating.fillna("")
     )
 
     # Find the column corresponding to positive sentiment
     positive_index = list(sentiment_model.classes_).index("positive")
 
-    positive_probability = probabilities[:, positive_index]
+    train_positive_probability = train_probabilities[:, positive_index]
 
-    # Prepare features for the regression model
+    tune_positive_probability = tune_probabilities[:, positive_index]
+
+    # Prepare training features
     X_train_features = pd.DataFrame({
-        "positive_probability": positive_probability
+        "positive_probability": train_positive_probability
     }, index=X_train_rating.index)
 
-    # Train the numerical rating regression model
-    print("\nTraining rating regression model...", flush=True)
+    # Prepare tuning features
+    X_tune_features = pd.DataFrame({
+        "positive_probability": tune_positive_probability
+    }, index=X_tune_rating.index)
 
-    rating_model = LinearRegression()
 
-    rating_model.fit(X_train_features, y_train_rating)
+    # --------------------------------------------------
+    # Tune Linear Regression hyperparameters
+    # --------------------------------------------------
+
+    print("\nTuning rating regression model...", flush=True)
+
+    # Initial regression model
+    rating_pipeline = LinearRegression()
+
+    # Test all four combinations of the two Boolean parameters
+    rating_param_grid = {
+        "fit_intercept": [True, False],
+        "positive": [True, False]
+    }
+
+    # Grid search evaluates every possible combination
+    rating_search = GridSearchCV(
+        estimator=rating_pipeline,
+        param_grid=rating_param_grid,
+        cv=3,
+        scoring="neg_mean_absolute_error",
+        n_jobs=-1,
+        verbose=1,
+        refit=False
+    )
+
+    # Tune using ONLY the rating tuning dataset
+    rating_search.fit(
+        X_tune_features,
+        y_tune_rating
+    )
+
+    best_rating_params = rating_search.best_params_
+
+    print("\nBest regression hyperparameters:", flush=True)
+
+    for parameter, value in best_rating_params.items():
+        print(f"{parameter}: {value}", flush=True)
+
+    print(
+        f"\nBest regression cross-validation MAE: "
+        f"{-rating_search.best_score_:.4f}",
+        flush=True
+    )
+
+
+    # --------------------------------------------------
+    # Train final regression model
+    # --------------------------------------------------
+
+    print("\nTraining final rating regression model...", flush=True)
+
+    rating_model = LinearRegression(
+        fit_intercept=best_rating_params["fit_intercept"],
+        positive=best_rating_params["positive"]
+    )
+
+    # Train ONLY using the rating training dataset
+    rating_model.fit(
+        X_train_features,
+        y_train_rating
+    )
 
     return {
         "sentiment_model": sentiment_model,
         "rating_model": rating_model,
-        "best_params": best_params
+        "best_sentiment_params": best_sentiment_params,
+        "best_rating_params": best_rating_params
     }
 
 
@@ -184,7 +314,7 @@ if __name__ == "__main__":
 
     print("Loading sentiment dataset...", flush=True)
 
-    sentiment_df = pd.read_csv("IMDB-Dataset.csv")
+    sentiment_df = pd.read_csv(ROOT_DIR / "IMDB-Dataset.csv")
 
     # Sample 20,000 reviews
     sentiment_df = sentiment_df.sample(
@@ -204,9 +334,9 @@ if __name__ == "__main__":
         stratify=y
     )
 
-    # Divide the remaining 90% into training and tuning datasets
+    # Divide remaining 90% into training and tuning datasets
     # 22.2222% of 18,000 = 4,000
-    X_train_sentiment, X_tune, y_train_sentiment, y_tune = train_test_split(
+    X_train_sentiment, X_tune_sentiment, y_train_sentiment, y_tune_sentiment = train_test_split(
         X_train_tune,
         y_train_tune,
         test_size=0.222222,
@@ -216,7 +346,7 @@ if __name__ == "__main__":
 
     print("\nSentiment dataset split:", flush=True)
     print("Training reviews:", len(X_train_sentiment))
-    print("Tuning reviews:", len(X_tune))
+    print("Tuning reviews:", len(X_tune_sentiment))
     print("Testing reviews:", len(X_test_sentiment))
 
 
@@ -226,9 +356,9 @@ if __name__ == "__main__":
 
     print("\nLoading numerical rating dataset...", flush=True)
 
-    ratings_df = pd.read_csv("imdb_ratings.csv")
+    ratings_df = pd.read_csv(ROOT_DIR / "imdb_ratings.csv")
 
-    # Sample 20,000 reviews using the same seed as the baseline
+    # Sample 20,000 reviews using the same seed as baseline
     ratings_df = ratings_df.sample(
         n=20000,
         random_state=12
@@ -237,16 +367,26 @@ if __name__ == "__main__":
     X_rating = ratings_df["review"].fillna("")
     y_rating = ratings_df["rating"]
 
-    # Split into training and testing datasets
-    X_train_rating, X_test_rating, y_train_rating, y_test_rating = train_test_split(
+    # First reserve 10% for final rating testing
+    X_train_tune_rating, X_test_rating, y_train_tune_rating, y_test_rating = train_test_split(
         X_rating,
         y_rating,
         test_size=0.10,
         random_state=12
     )
 
+    # Divide remaining 90% into training and tuning datasets
+    # 22.2222% of 18,000 = 4,000
+    X_train_rating, X_tune_rating, y_train_rating, y_tune_rating = train_test_split(
+        X_train_tune_rating,
+        y_train_tune_rating,
+        test_size=0.222222,
+        random_state=12
+    )
+
     print("\nRating dataset split:", flush=True)
     print("Training reviews:", len(X_train_rating))
+    print("Tuning reviews:", len(X_tune_rating))
     print("Testing reviews:", len(X_test_rating))
 
 
@@ -259,15 +399,32 @@ if __name__ == "__main__":
         lambda: build_full_model(
             X_train_sentiment,
             y_train_sentiment,
-            X_tune,
-            y_tune,
+            X_tune_sentiment,
+            y_tune_sentiment,
             X_train_rating,
-            y_train_rating
+            y_train_rating,
+            X_tune_rating,
+            y_tune_rating
         )
     )
 
     sentiment_model = models["sentiment_model"]
     rating_model = models["rating_model"]
+
+
+    # --------------------------------------------------
+    # Display selected hyperparameters
+    # --------------------------------------------------
+
+    print("\nSelected sentiment hyperparameters:")
+
+    for parameter, value in models["best_sentiment_params"].items():
+        print(f"{parameter}: {value}")
+
+    print("\nSelected regression hyperparameters:")
+
+    for parameter, value in models["best_rating_params"].items():
+        print(f"{parameter}: {value}")
 
 
     # --------------------------------------------------
@@ -295,6 +452,24 @@ if __name__ == "__main__":
             sentiment_predictions
         )
     )
+
+    # Generate confusion matrix
+    cm = confusion_matrix(
+        y_test_sentiment,
+        sentiment_predictions,
+        labels=["negative", "positive"]
+    )
+
+    print("\nConfusion Matrix:")
+    print(cm)
+
+    ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=["negative", "positive"]
+    ).plot()
+
+    plt.title("Naive Bayes Sentiment Classification")
+    plt.show()
 
 
     # --------------------------------------------------
