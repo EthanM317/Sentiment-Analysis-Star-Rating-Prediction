@@ -17,7 +17,7 @@ Final Project for CSCI 3052U
 
 `source .venv/ac` Or `.venv\Scripts\activate.bat`
 
-`pip install -r requirements`
+`pip install -r requirements.txt`
 
 
 
