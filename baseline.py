@@ -38,7 +38,7 @@ if __name__ == "__main__":
     df = pd.read_csv(ROOT_DIR / "imdb_ratings.csv")
 
     # Reduce to random sample of 20,000 reviews
-    df = df.sample(n=20000, random_state=12)
+    df = df.sample(n=40000, random_state=12)
 
     X = df["review"].fillna("")
     y = df["rating"]

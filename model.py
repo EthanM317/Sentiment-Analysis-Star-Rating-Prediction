@@ -110,7 +110,7 @@ def build_full_model(
         n_iter=20,
         cv=3,
         scoring="f1_macro",
-        random_state=17,
+        random_state=12,
         n_jobs=-1,
         verbose=1,
         refit=False
@@ -318,8 +318,8 @@ if __name__ == "__main__":
 
     # Sample 20,000 reviews
     sentiment_df = sentiment_df.sample(
-        n=20000,
-        random_state=17
+        n=80000,
+        random_state=12
     )
 
     X = sentiment_df["review"].fillna("")
@@ -330,7 +330,7 @@ if __name__ == "__main__":
         X,
         y,
         test_size=0.10,
-        random_state=17,
+        random_state=12,
         stratify=y
     )
 
@@ -340,7 +340,7 @@ if __name__ == "__main__":
         X_train_tune,
         y_train_tune,
         test_size=0.222222,
-        random_state=17,
+        random_state=12,
         stratify=y_train_tune
     )
 
@@ -360,7 +360,7 @@ if __name__ == "__main__":
 
     # Sample 20,000 reviews using the same seed as baseline
     ratings_df = ratings_df.sample(
-        n=20000,
+        n=80000,
         random_state=12
     )
 
