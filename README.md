@@ -8,7 +8,7 @@ Final Project for CSCI 3052U
 
 `git clone https://github.com/EthanM317/Sentiment-Analysis-Star-Rating-Prediction.git`
 
-- Download [IMDB movie reviews grouped by ratings](https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews) and place .csv files into project root
+- Download [IMDB movie reviews grouped by ratings]([https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews](https://www.kaggle.com/datasets/mlopssss/imdb-movie-reviews-grouped-by-ratings?resource=download)) and place .csv files into project root
 
 
 - Create a local python environment and install the dependencies
