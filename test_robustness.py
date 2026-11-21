@@ -17,7 +17,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 
 # Input files
 DATASET_FILE = ROOT_DIR / "imdb_ratings.csv"
-MODEL_FILE = ROOT_DIR / "full-nb-rating-model-v4.cache"
+MODEL_FILE = ROOT_DIR / "model-NaiveBayes.cache"
 
 # Output file
 OUTPUT_FILE = ROOT_DIR / "naive_bayes_robustness.csv"
