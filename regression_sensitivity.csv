@@ -1,0 +1,5 @@
+fit_intercept,positive,is_best_combination,mae,mse,pearson,p_value
+False,False,False,2.258,9.993,0.6438659886952266,0.0
+False,True,False,2.258,9.993,0.6438659886952266,0.0
+True,False,False,2.042,5.8745,0.645590718390233,0.0
+True,True,True,2.042,5.8745,0.645590718390233,0.0
