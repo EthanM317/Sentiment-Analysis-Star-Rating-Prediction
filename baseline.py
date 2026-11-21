@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import pickle
+import time
 
 from pathlib import Path
 from scipy.stats import pearsonr, loguniform, randint
@@ -37,7 +38,7 @@ if __name__ == "__main__":
 
     df = pd.read_csv(ROOT_DIR / "imdb_ratings.csv")
 
-    # Reduce to random sample of 20,000 reviews
+    # Reduce to random sample of 40,000 reviews
     df = df.sample(n=40000, random_state=12)
 
     X = df["review"].fillna("")
@@ -61,7 +62,7 @@ if __name__ == "__main__":
     )
 
     # Divide remaining 90% into training and tuning datasets
-    # 22.2222% of 18,000 = 4,000
+    # 22.2222% of 36,000 = 8,000
     X_train, X_tune, y_train, y_tune = train_test_split(
         X_train_tune,
         y_train_tune,
@@ -96,6 +97,9 @@ if __name__ == "__main__":
             print(f"{parameter}: {value}")
 
     else:
+
+        # Start timer for complete model training
+        training_start_time = time.perf_counter()
 
         print("\nStep 3/5: Tuning baseline hyperparameters...", flush=True)
 
@@ -182,6 +186,23 @@ if __name__ == "__main__":
             pickle.dump(baseline, file)
 
         print("Model successfully cached.", flush=True)
+
+        # Calculate total training time
+        training_end_time = time.perf_counter()
+        total_training_time = training_end_time - training_start_time
+
+        hours, remainder = divmod(total_training_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        print("\n----------------------------------------")
+        print("FULL MODEL TRAINING TIME")
+        print("----------------------------------------")
+        print(f"Total seconds: {total_training_time:.2f}")
+        print(
+            f"Formatted time: "
+            f"{int(hours)}h {int(minutes)}m {seconds:.2f}s"
+        )
+        print("----------------------------------------")
 
 
     # --------------------------------------------------

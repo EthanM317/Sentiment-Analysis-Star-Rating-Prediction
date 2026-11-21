@@ -4,6 +4,7 @@
 import pandas as pd
 import os
 import pickle
+import time
 from pathlib import Path
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -45,12 +46,32 @@ def cache_model(path, builder):
 
         print("Training complete model (this might take a while)...", flush=True)
 
+        # Start tracking training time
+        training_start_time = time.perf_counter()
+
         models = builder()
 
-        print("Training complete! Caching both models...", flush=True)
+        print("\nTraining complete! Caching both models...", flush=True)
 
         with open(path, "wb") as file:
             pickle.dump(models, file)
+
+        # Stop tracking training time
+        training_end_time = time.perf_counter()
+
+        training_time = training_end_time - training_start_time
+
+        # Convert elapsed time into hours, minutes, and seconds
+        hours = int(training_time // 3600)
+        minutes = int((training_time % 3600) // 60)
+        seconds = training_time % 60
+
+        print("\nTraining Time:", flush=True)
+        print(f"Total seconds: {training_time:.2f}", flush=True)
+        print(
+            f"Formatted time: {hours}h {minutes}m {seconds:.2f}s",
+            flush=True
+        )
 
     return models
 
@@ -234,7 +255,7 @@ if __name__ == "__main__":
 
     ratings_df = pd.read_csv(ROOT_DIR / "imdb_ratings.csv")
 
-    # Sample 20,000 reviews using the same seed as baseline
+    # Sample 40,000 reviews using the same seed as baseline
     ratings_df = ratings_df.sample(
         n=40000,
         random_state=12
@@ -252,7 +273,7 @@ if __name__ == "__main__":
     )
 
     # Divide remaining 90% into training and tuning datasets
-    # 22.2222% of 18,000 = 4,000
+    # 22.2222% of 36,000 = 8,000
     X_train_rating, X_tune_rating, y_train_rating, y_tune_rating = train_test_split(
         X_train_tune_rating,
         y_train_tune_rating,
