@@ -23,7 +23,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 ROOT_DIR = Path(__file__).resolve().parent
 
 BASELINE_MODEL_FILE = ROOT_DIR / "model-baseline.cache"
-NB_MODEL_FILE = ROOT_DIR / "full-nb-rating-model-v4.cache"
+NB_MODEL_FILE = ROOT_DIR / "model-Naive-Bayes.cache"
 VADER_MODEL_FILE = ROOT_DIR / "model-VADER.cache"
 
 DATASET_FILE = ROOT_DIR / "imdb_ratings.csv"
