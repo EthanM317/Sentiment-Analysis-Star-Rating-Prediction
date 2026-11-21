@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 ROOT_DIR = Path(__file__).resolve().parent
 
-MODEL_FILE = ROOT_DIR / "full-nb-rating-model-v4.cache"
+MODEL_FILE = ROOT_DIR / "model-NaiveBayes.cache"
 DATASET_FILE = ROOT_DIR / "imdb_ratings.csv"
 OUTPUT_FILE = ROOT_DIR / "incorrect_predictions.txt"
 
