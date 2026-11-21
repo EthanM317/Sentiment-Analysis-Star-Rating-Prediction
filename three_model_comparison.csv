@@ -1,0 +1,4 @@
+Model,MAE,MSE,Pearson
+TF-IDF + SVR,1.4055,3.589,0.8025
+Naive Bayes + Linear Regression,2.042,5.8745,0.6456
+VADER + Linear Regression,2.1788,7.3948,0.5156
